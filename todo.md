@@ -1,0 +1,3 @@
+- [ ] I feel like we don't need most of event.rs, like use the windows enums or smth
+- [ ] more general refactoring
+- [ ] vjoy
