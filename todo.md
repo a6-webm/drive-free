@@ -1,3 +1,4 @@
-- [ ] I feel like we don't need most of event.rs, like use the windows enums or smth
+- [x] I feel like we don't need most of event.rs, like use the windows enums or smth
+- [ ] keyboard and event have weird dependencies to each other, fix pls
 - [ ] more general refactoring
 - [ ] vjoy

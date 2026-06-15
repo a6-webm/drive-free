@@ -1,183 +1,64 @@
 use winapi::um::winuser;
 
-use crate::{KeyId, RawEvent, State};
+use crate::{RawEvent, State, Vk};
 
 #[derive(Clone)]
-enum KeyPos {
+pub enum KeyPos {
     Left,
     Right,
 }
+
+const VK_0: Vk = 0x30;
+const VK_1: Vk = 0x31;
+const VK_2: Vk = 0x32;
+const VK_3: Vk = 0x33;
+const VK_4: Vk = 0x34;
+const VK_5: Vk = 0x35;
+const VK_6: Vk = 0x36;
+const VK_7: Vk = 0x37;
+const VK_8: Vk = 0x38;
+const VK_9: Vk = 0x39;
+const VK_A: Vk = 0x41;
+const VK_B: Vk = 0x42;
+const VK_C: Vk = 0x43;
+const VK_D: Vk = 0x44;
+const VK_E: Vk = 0x45;
+const VK_F: Vk = 0x46;
+const VK_G: Vk = 0x47;
+const VK_H: Vk = 0x48;
+const VK_I: Vk = 0x49;
+const VK_J: Vk = 0x4A;
+const VK_K: Vk = 0x4B;
+const VK_L: Vk = 0x4C;
+const VK_M: Vk = 0x4D;
+const VK_N: Vk = 0x4E;
+const VK_O: Vk = 0x4F;
+const VK_P: Vk = 0x50;
+const VK_Q: Vk = 0x51;
+const VK_R: Vk = 0x52;
+const VK_S: Vk = 0x53;
+const VK_T: Vk = 0x54;
+const VK_U: Vk = 0x55;
+const VK_V: Vk = 0x56;
+const VK_W: Vk = 0x57;
+const VK_X: Vk = 0x58;
+const VK_Y: Vk = 0x59;
+const VK_Z: Vk = 0x5A;
 
 pub fn process_keyboard_data(raw_data: &winuser::RAWKEYBOARD, id: usize) -> Vec<RawEvent> {
     let mut output: Vec<RawEvent> = Vec::new();
     let flags = raw_data.Flags as u32;
     let key = raw_data.VKey as i32;
-    let mut key_opt: Option<KeyId> = None;
-    let key_state: State;
-    let key_pos: KeyPos;
-    if flags & winuser::RI_KEY_BREAK != 0 {
-        key_state = State::Released;
+    let key_state = if flags & winuser::RI_KEY_BREAK != 0 {
+        State::Released
     } else {
-        key_state = State::Pressed;
-    }
-    if flags & winuser::RI_KEY_E0 != 0 {
-        key_pos = KeyPos::Left;
+        State::Pressed
+    };
+    let key_pos = if flags & winuser::RI_KEY_E0 != 0 {
+        KeyPos::Left
     } else {
-        key_pos = KeyPos::Right;
-    }
-    if key == winuser::VK_ESCAPE {
-        key_opt = Some(KeyId::Escape);
-    }
-    if key == winuser::VK_RETURN {
-        key_opt = Some(KeyId::Return);
-    }
-    if key == winuser::VK_BACK {
-        key_opt = Some(KeyId::Backspace);
-    }
-    if key == winuser::VK_LEFT {
-        key_opt = Some(KeyId::Left);
-    }
-    if key == winuser::VK_RIGHT {
-        key_opt = Some(KeyId::Right);
-    }
-    if key == winuser::VK_UP {
-        key_opt = Some(KeyId::Up);
-    }
-    if key == winuser::VK_DOWN {
-        key_opt = Some(KeyId::Down);
-    }
-    if key == winuser::VK_SPACE {
-        key_opt = Some(KeyId::Space);
-    }
-    if key == winuser::VK_LSHIFT {
-        key_opt = Some(KeyId::LeftShift);
-    }
-    if key == winuser::VK_RSHIFT {
-        key_opt = Some(KeyId::RightShift);
-    }
-    if key == winuser::VK_LCONTROL {
-        key_opt = Some(KeyId::LeftCtrl);
-    }
-    if key == winuser::VK_RCONTROL {
-        key_opt = Some(KeyId::RightCtrl);
-    }
-    if key == winuser::VK_LMENU {
-        key_opt = Some(KeyId::LeftAlt);
-    }
-    if key == winuser::VK_RMENU {
-        key_opt = Some(KeyId::RightAlt);
-    }
-    if key == 0x30 {
-        key_opt = Some(KeyId::Zero);
-    }
-    if key == 0x31 {
-        key_opt = Some(KeyId::One);
-    }
-    if key == 0x32 {
-        key_opt = Some(KeyId::Two);
-    }
-    if key == 0x33 {
-        key_opt = Some(KeyId::Three);
-    }
-    if key == 0x34 {
-        key_opt = Some(KeyId::Four);
-    }
-    if key == 0x35 {
-        key_opt = Some(KeyId::Five);
-    }
-    if key == 0x36 {
-        key_opt = Some(KeyId::Six);
-    }
-    if key == 0x37 {
-        key_opt = Some(KeyId::Seven);
-    }
-    if key == 0x38 {
-        key_opt = Some(KeyId::Eight);
-    }
-    if key == 0x39 {
-        key_opt = Some(KeyId::Nine);
-    }
-    if key == 0x41 {
-        key_opt = Some(KeyId::A);
-    }
-    if key == 0x42 {
-        key_opt = Some(KeyId::B);
-    }
-    if key == 0x43 {
-        key_opt = Some(KeyId::C);
-    }
-    if key == 0x44 {
-        key_opt = Some(KeyId::D);
-    }
-    if key == 0x45 {
-        key_opt = Some(KeyId::E);
-    }
-    if key == 0x46 {
-        key_opt = Some(KeyId::F);
-    }
-    if key == 0x47 {
-        key_opt = Some(KeyId::G);
-    }
-    if key == 0x48 {
-        key_opt = Some(KeyId::H);
-    }
-    if key == 0x49 {
-        key_opt = Some(KeyId::I);
-    }
-    if key == 0x4A {
-        key_opt = Some(KeyId::J);
-    }
-    if key == 0x4B {
-        key_opt = Some(KeyId::K);
-    }
-    if key == 0x4C {
-        key_opt = Some(KeyId::L);
-    }
-    if key == 0x4D {
-        key_opt = Some(KeyId::M);
-    }
-    if key == 0x4E {
-        key_opt = Some(KeyId::N);
-    }
-    if key == 0x4F {
-        key_opt = Some(KeyId::O);
-    }
-    if key == 0x50 {
-        key_opt = Some(KeyId::P);
-    }
-    if key == 0x51 {
-        key_opt = Some(KeyId::Q);
-    }
-    if key == 0x52 {
-        key_opt = Some(KeyId::R);
-    }
-    if key == 0x53 {
-        key_opt = Some(KeyId::S);
-    }
-    if key == 0x54 {
-        key_opt = Some(KeyId::T);
-    }
-    if key == 0x55 {
-        key_opt = Some(KeyId::U);
-    }
-    if key == 0x56 {
-        key_opt = Some(KeyId::V);
-    }
-    if key == 0x57 {
-        key_opt = Some(KeyId::W);
-    }
-    if key == 0x58 {
-        key_opt = Some(KeyId::X);
-    }
-    if key == 0x59 {
-        key_opt = Some(KeyId::Y);
-    }
-    if key == 0x5A {
-        key_opt = Some(KeyId::Z);
-    }
-
-    if let Some(key_id) = key_opt {
-        output.push(RawEvent::KeyboardEvent(id, key_id, key_state));
-    }
+        KeyPos::Right
+    };
+    output.push(RawEvent::KeyboardEvent(id, key, key_state, key_pos));
     output
 }

@@ -1,3 +1,5 @@
+use crate::keyboard::KeyPos;
+
 /// State of a Key or Button
 #[derive(Clone)]
 pub enum State {
@@ -5,60 +7,7 @@ pub enum State {
     Released,
 }
 
-/// Key Identifier
-#[derive(Clone)]
-pub enum KeyId {
-    Escape,
-    Return,
-    Backspace,
-    Left,
-    Right,
-    Up,
-    Down,
-    Space,
-    A,
-    B,
-    C,
-    D,
-    E,
-    F,
-    G,
-    H,
-    I,
-    J,
-    K,
-    L,
-    M,
-    N,
-    O,
-    P,
-    Q,
-    R,
-    S,
-    T,
-    U,
-    V,
-    W,
-    X,
-    Y,
-    Z,
-    Zero,
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-    Six,
-    Seven,
-    Eight,
-    Nine,
-    LeftShift,
-    RightShift,
-    LeftCtrl,
-    RightCtrl,
-    LeftAlt,
-    RightAlt,
-}
+pub type Vk = i32;
 
 /// Mouse Buttons
 #[derive(Clone)]
@@ -78,5 +27,5 @@ pub enum RawEvent {
     MouseButtonEvent(usize, MouseButton, State),
     MouseMoveEvent(usize, i32, i32),
     MouseWheelEvent(usize, f32),
-    KeyboardEvent(usize, KeyId, State),
+    KeyboardEvent(usize, Vk, State, KeyPos),
 }

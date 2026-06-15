@@ -1,6 +1,7 @@
 use std::time;
 
-use drive_free::{DeviceType, KeyId, MouseButton, RawEvent, RawInputManager, State};
+use drive_free::{DeviceType, MouseButton, RawEvent, RawInputManager, State};
+use winapi::um::winuser;
 
 fn main() {
     //print_raw_device_list(devices.clone());
@@ -42,16 +43,16 @@ fn main() {
                 RawEvent::MouseWheelEvent(id, data) => {
                     println!("Mouse {:?} Wheel Data {:?}", id, data)
                 }
-                RawEvent::KeyboardEvent(id, KeyId::Escape, State::Pressed) => {
+                RawEvent::KeyboardEvent(id, winuser::VK_ESCAPE, State::Pressed, _) => {
                     println!("Keyboard {:?} Escape Pressed", id)
                 }
-                RawEvent::KeyboardEvent(id, KeyId::Escape, State::Released) => {
+                RawEvent::KeyboardEvent(id, winuser::VK_ESCAPE, State::Released, _) => {
                     println!("Keyboard {:?} Escape Released", id)
                 }
-                RawEvent::KeyboardEvent(id, KeyId::Return, State::Pressed) => {
+                RawEvent::KeyboardEvent(id, winuser::VK_RETURN, State::Pressed, _) => {
                     println!("Keyboard {:?} Return Pressed", id)
                 }
-                RawEvent::KeyboardEvent(id, KeyId::Return, State::Released) => {
+                RawEvent::KeyboardEvent(id, winuser::VK_RETURN, State::Released, _) => {
                     println!("Keyboard {:?} Return Released", id)
                 }
                 _ => (),
