@@ -1,6 +1,9 @@
 use std::time;
 
-use drive_free::{DeviceType, MouseButton, RawEvent, RawInputManager, State};
+use drive_free::{
+    DeviceType, RawInputManager,
+    event::{MouseButton, PressState, RawEvent},
+};
 use winapi::um::winuser;
 
 fn main() {
@@ -13,28 +16,28 @@ fn main() {
     while current_time.as_secs_f64() < 10f64 {
         while let Some(event) = manager.get_event() {
             match event {
-                RawEvent::MouseButtonEvent(id, MouseButton::Left, State::Pressed) => {
+                RawEvent::MouseButtonEvent(id, MouseButton::Left, PressState::Press) => {
                     println!("Mouse {:?} Left Button Down", id)
                 }
-                RawEvent::MouseButtonEvent(id, MouseButton::Left, State::Released) => {
+                RawEvent::MouseButtonEvent(id, MouseButton::Left, PressState::Release) => {
                     println!("Mouse {:?} Left Button Up", id)
                 }
-                RawEvent::MouseButtonEvent(id, MouseButton::Right, State::Pressed) => {
+                RawEvent::MouseButtonEvent(id, MouseButton::Right, PressState::Press) => {
                     println!("Mouse {:?} Right Button Down", id)
                 }
-                RawEvent::MouseButtonEvent(id, MouseButton::Right, State::Released) => {
+                RawEvent::MouseButtonEvent(id, MouseButton::Right, PressState::Release) => {
                     println!("Mouse {:?} Right Button Up", id)
                 }
-                RawEvent::MouseButtonEvent(id, MouseButton::Button4, State::Pressed) => {
+                RawEvent::MouseButtonEvent(id, MouseButton::Button4, PressState::Press) => {
                     println!("Mouse {:?} Button 4 Down", id)
                 }
-                RawEvent::MouseButtonEvent(id, MouseButton::Button4, State::Released) => {
+                RawEvent::MouseButtonEvent(id, MouseButton::Button4, PressState::Release) => {
                     println!("Mouse {:?} Button 4 Up", id)
                 }
-                RawEvent::MouseButtonEvent(id, MouseButton::Button5, State::Pressed) => {
+                RawEvent::MouseButtonEvent(id, MouseButton::Button5, PressState::Press) => {
                     println!("Mouse {:?} Button 5 Down", id)
                 }
-                RawEvent::MouseButtonEvent(id, MouseButton::Button5, State::Released) => {
+                RawEvent::MouseButtonEvent(id, MouseButton::Button5, PressState::Release) => {
                     println!("Mouse {:?} Button 5 Up", id)
                 }
                 RawEvent::MouseMoveEvent(id, move_x, move_y) => {
@@ -43,16 +46,16 @@ fn main() {
                 RawEvent::MouseWheelEvent(id, data) => {
                     println!("Mouse {:?} Wheel Data {:?}", id, data)
                 }
-                RawEvent::KeyboardEvent(id, winuser::VK_ESCAPE, State::Pressed, _) => {
+                RawEvent::KeyboardEvent(id, winuser::VK_ESCAPE, PressState::Press, _) => {
                     println!("Keyboard {:?} Escape Pressed", id)
                 }
-                RawEvent::KeyboardEvent(id, winuser::VK_ESCAPE, State::Released, _) => {
+                RawEvent::KeyboardEvent(id, winuser::VK_ESCAPE, PressState::Release, _) => {
                     println!("Keyboard {:?} Escape Released", id)
                 }
-                RawEvent::KeyboardEvent(id, winuser::VK_RETURN, State::Pressed, _) => {
+                RawEvent::KeyboardEvent(id, winuser::VK_RETURN, PressState::Press, _) => {
                     println!("Keyboard {:?} Return Pressed", id)
                 }
-                RawEvent::KeyboardEvent(id, winuser::VK_RETURN, State::Released, _) => {
+                RawEvent::KeyboardEvent(id, winuser::VK_RETURN, PressState::Release, _) => {
                     println!("Keyboard {:?} Return Released", id)
                 }
                 _ => (),

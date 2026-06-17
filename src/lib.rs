@@ -4,24 +4,18 @@ pub mod event;
 mod keyboard;
 mod mouse;
 
-pub use event::*;
-use keyboard::*;
-use mouse::*;
 use std::collections::{HashMap, VecDeque};
-use std::ffi::OsStr;
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::mem;
-use std::os::windows::ffi::OsStrExt;
-use std::os::windows::ffi::OsStringExt;
+use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::ptr;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use std::thread::JoinHandle;
-use winapi::shared::minwindef;
-use winapi::shared::windef;
-use winapi::um::libloaderapi;
-use winapi::um::winnt;
-use winapi::um::winuser;
+use winapi::shared::{minwindef, windef};
+use winapi::um::{libloaderapi, winnt, winuser};
+
+use crate::event::{DevId, RawEvent};
 
 #[repr(C)]
 struct RAWINPUTHID {
@@ -55,7 +49,7 @@ unsafe fn derive_rawinput_type(input: *mut winuser::RAWINPUT) -> RAWINPUTTYPE {
             winuser::RIM_TYPEMOUSE => RAWINPUTTYPE::MOUSE(input as *mut RAWINPUTMOUSE),
             winuser::RIM_TYPEKEYBOARD => RAWINPUTTYPE::KEYBOARD(input as *mut RAWINPUTKEYBOARD),
             winuser::RIM_TYPEHID => RAWINPUTTYPE::HID(input as *mut RAWINPUTHID),
-            _ => panic!("Should be Unreachable!"),
+            _ => panic!("dwType should be 0, 1 or 2"),
         }
     }
 }
@@ -84,7 +78,7 @@ pub struct Devices {
     pub mice: Vec<Mouse>,
     pub keyboards: Vec<Keyboard>,
     pub hids: Vec<Hid>,
-    device_map: HashMap<winnt::HANDLE, usize>,
+    device_map: HashMap<winnt::HANDLE, DevId>,
 }
 
 impl Devices {
@@ -217,43 +211,42 @@ fn read_input_buffer(event_queue: &mut VecDeque<RawEvent>, devices: &Devices) {
     let mut rawinput_alloc = mem::MaybeUninit::<winuser::RAWINPUT>::uninit();
     let mut buffer_size: u32 = 0;
 
-    let mut numberofelements: i32 = unsafe {
+    let mut num_elements: i32 = unsafe {
         winuser::GetRawInputBuffer(
             ptr::null_mut(),
             &mut buffer_size,
             mem::size_of::<winuser::RAWINPUTHEADER>() as u32,
         ) as i32
     };
-    if numberofelements as i32 == -1 {
+    if num_elements as i32 == -1 {
         panic!("GetRawInputBuffer Gave Error on First Call!");
     }
     buffer_size = 1024;
-    numberofelements = unsafe {
+    num_elements = unsafe {
         winuser::GetRawInputBuffer(
             rawinput_alloc.as_mut_ptr(),
             &mut buffer_size,
             mem::size_of::<winuser::RAWINPUTHEADER>() as u32,
         ) as i32
     };
-    if numberofelements as i32 == -1 {
+    if num_elements as i32 == -1 {
         panic!("GetRawInputBuffer Gave Error on Second Call!");
     }
 
     let rawinput = unsafe { rawinput_alloc.assume_init() };
-    for _ in 0..numberofelements as u32 {
+    for _ in 0..num_elements as u32 {
         let raw_input_ptr = unsafe { derive_rawinput_type(rawinput_alloc.as_mut_ptr()) };
-        let pos = match devices.device_map.get(&rawinput.header.hDevice) {
-            Some(item) => *item,
-            None => continue,
+        let Some(id) = devices.device_map.get(&rawinput.header.hDevice).map(|f| *f) else {
+            continue;
         };
         match raw_input_ptr {
             RAWINPUTTYPE::MOUSE(pointer) => {
-                let value = unsafe { *pointer };
-                event_queue.extend(process_mouse_data(&value.data, pos));
+                let ev = unsafe { *pointer };
+                event_queue.extend(mouse::process_mouse_data(&ev.data, id));
             }
             RAWINPUTTYPE::KEYBOARD(pointer) => {
-                let value = unsafe { *pointer };
-                event_queue.extend(process_keyboard_data(&value.data, pos));
+                let ev = unsafe { *pointer };
+                event_queue.extend(keyboard::process_keyboard_data(&ev.data, id));
             }
             _ => (),
         }
@@ -264,42 +257,40 @@ fn get_event(event_queue: &mut VecDeque<RawEvent>, devices: &Devices) -> Option<
     if event_queue.is_empty() {
         read_input_buffer(event_queue, &devices);
     }
-    let event = event_queue.pop_front();
-    event
+    event_queue.pop_front()
 }
 
 fn setup_message_window() -> windef::HWND {
     let hwnd: windef::HWND;
-    unsafe {
-        let hinstance = libloaderapi::GetModuleHandleW(ptr::null());
-        if hinstance == ptr::null_mut() {
-            panic!("Instance Generation Failed");
-        }
-        let classname = OsStr::new("RawInput Hidden Window")
-            .encode_wide()
-            .chain(Some(0).into_iter())
-            .collect::<Vec<_>>();
+    let hinstance = unsafe { libloaderapi::GetModuleHandleW(ptr::null()) };
+    if hinstance == ptr::null_mut() {
+        panic!("Instance Generation Failed");
+    }
+    let classname = OsStr::new("RawInput Hidden Window")
+        .encode_wide()
+        .chain(Some(0).into_iter())
+        .collect::<Vec<_>>();
 
-        let wcex = winuser::WNDCLASSEXW {
-            cbSize: (mem::size_of::<winuser::WNDCLASSEXW>()) as u32,
-            cbClsExtra: 0,
-            cbWndExtra: 0,
-            hbrBackground: ptr::null_mut(),
-            hCursor: ptr::null_mut(),
-            hIcon: ptr::null_mut(),
-            hIconSm: ptr::null_mut(),
-            hInstance: hinstance,
-            lpfnWndProc: Some(winuser::DefWindowProcW),
-            lpszClassName: classname.as_ptr(),
-            lpszMenuName: ptr::null_mut(),
-            style: 0,
-        };
-        let a = winuser::RegisterClassExW(&wcex);
-        if a == 0 {
-            panic!("Registering WindowClass Failed!");
-        }
+    let wcex = winuser::WNDCLASSEXW {
+        cbSize: (mem::size_of::<winuser::WNDCLASSEXW>()) as u32,
+        cbClsExtra: 0,
+        cbWndExtra: 0,
+        hbrBackground: ptr::null_mut(),
+        hCursor: ptr::null_mut(),
+        hIcon: ptr::null_mut(),
+        hIconSm: ptr::null_mut(),
+        hInstance: hinstance,
+        lpfnWndProc: Some(winuser::DefWindowProcW),
+        lpszClassName: classname.as_ptr(),
+        lpszMenuName: ptr::null_mut(),
+        style: 0,
+    };
+    if unsafe { winuser::RegisterClassExW(&wcex) } == 0 {
+        panic!("Registering WindowClass Failed!");
+    }
 
-        hwnd = winuser::CreateWindowExW(
+    hwnd = unsafe {
+        winuser::CreateWindowExW(
             0,
             classname.as_ptr(),
             classname.as_ptr(),
@@ -312,10 +303,10 @@ fn setup_message_window() -> windef::HWND {
             ptr::null_mut(),
             hinstance,
             ptr::null_mut(),
-        );
-        if hwnd.is_null() {
-            panic!("Window Creation Failed!");
-        }
+        )
+    };
+    if hwnd.is_null() {
+        panic!("Window Creation Failed!");
     }
     hwnd
 }
@@ -426,7 +417,6 @@ pub fn produce_raw_device_list() -> Devices {
     device_list
 }
 
-/// Prints a list of all available raw input devices
 pub fn print_raw_device_list() {
     let device_list = produce_raw_device_list();
     println!("Mice:");
