@@ -1,7 +1,12 @@
 - [x] I feel like we don't need most of event.rs, like use the windows enums or smth
 - [x] keyboard and event have weird dependencies to each other, fix pls
 - [x] more general refactoring
+- [ ] drop on RawInputManager not fully implemented
+- [ ] device selection
 - [ ] vjoy
 - [ ] steering wheel
 - [ ] gearstick
+  - [ ] relative or absolute?
+  - [ ] distance config
 - [ ] pedals
+  - [ ] key config

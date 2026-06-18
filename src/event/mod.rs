@@ -1,5 +1,8 @@
-pub use crate::keyboard::KeyPos;
-pub use crate::mouse::MouseButton;
+pub mod keyboard;
+pub mod mouse;
+
+pub use keyboard::KeyPos;
+pub use mouse::MouseButton;
 
 pub type DevId = usize;
 pub type Vk = i32;

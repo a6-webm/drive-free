@@ -1,8 +1,6 @@
 extern crate winapi;
 
 pub mod event;
-mod keyboard;
-mod mouse;
 
 use std::collections::{HashMap, VecDeque};
 use std::ffi::{OsStr, OsString};
@@ -164,6 +162,7 @@ impl Drop for RawInputManager {
     fn drop(&mut self) {
         self.sender.send(Command::Finish).unwrap();
         self.joiner.take().unwrap().join().unwrap();
+        // TODO close window properly
     }
 }
 
@@ -242,11 +241,11 @@ fn read_input_buffer(event_queue: &mut VecDeque<RawEvent>, devices: &Devices) {
         match raw_input_ptr {
             RAWINPUTTYPE::MOUSE(pointer) => {
                 let ev = unsafe { *pointer };
-                event_queue.extend(mouse::process_mouse_data(&ev.data, id));
+                event_queue.extend(event::mouse::process_mouse_data(&ev.data, id));
             }
             RAWINPUTTYPE::KEYBOARD(pointer) => {
                 let ev = unsafe { *pointer };
-                event_queue.extend(keyboard::process_keyboard_data(&ev.data, id));
+                event_queue.extend(event::keyboard::process_keyboard_data(&ev.data, id));
             }
             _ => (),
         }
