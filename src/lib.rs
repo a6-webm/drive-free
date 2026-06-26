@@ -15,6 +15,8 @@ use winapi::um::{libloaderapi, winnt, winuser};
 
 use crate::event::{DevId, RawEvent};
 
+const WINDOW_CLASSNAME: &str = "RawInput Hidden Window\0";
+
 #[repr(C)]
 struct RAWINPUTHID {
     pub header: winuser::RAWINPUTHEADER,
@@ -107,18 +109,22 @@ pub enum DeviceType {
 
 /// Manages Raw Input Processing
 pub struct RawInputManager {
-    joiner: Option<JoinHandle<()>>,
+    device_thread: Option<JoinHandle<()>>,
     sender: Sender<Command>,
     receiver: Receiver<Option<RawEvent>>,
 }
 
 impl RawInputManager {
+    pub fn init() {
+        register_window_class();
+    }
+
     pub fn new() -> Result<RawInputManager, &'static str> {
         let (tx, rx) = channel();
         let (tx2, rx2) = channel();
 
         let joiner = thread::spawn(move || {
-            let hwnd = setup_message_window();
+            let hwnd = make_window();
             let mut event_queue = VecDeque::new();
             let mut devices = Devices::new();
 
@@ -133,13 +139,14 @@ impl RawInputManager {
                         tx2.send(get_event(&mut event_queue, &devices)).unwrap();
                     }
                     Command::Finish => {
+                        unsafe { winuser::DestroyWindow(hwnd) };
                         exit = true;
                     }
                 };
             }
         });
         Ok(RawInputManager {
-            joiner: Some(joiner),
+            device_thread: Some(joiner),
             sender: tx,
             receiver: rx2,
         })
@@ -161,8 +168,7 @@ impl RawInputManager {
 impl Drop for RawInputManager {
     fn drop(&mut self) {
         self.sender.send(Command::Finish).unwrap();
-        self.joiner.take().unwrap().join().unwrap();
-        // TODO close window properly
+        self.device_thread.take().unwrap().join().unwrap();
     }
 }
 
@@ -259,17 +265,12 @@ fn get_event(event_queue: &mut VecDeque<RawEvent>, devices: &Devices) -> Option<
     event_queue.pop_front()
 }
 
-fn setup_message_window() -> windef::HWND {
-    let hwnd: windef::HWND;
+fn register_window_class() {
     let hinstance = unsafe { libloaderapi::GetModuleHandleW(ptr::null()) };
     if hinstance == ptr::null_mut() {
         panic!("Instance Generation Failed");
     }
-    let classname = OsStr::new("RawInput Hidden Window")
-        .encode_wide()
-        .chain(Some(0).into_iter())
-        .collect::<Vec<_>>();
-
+    let classname: Vec<u16> = OsStr::new(WINDOW_CLASSNAME).encode_wide().collect();
     let wcex = winuser::WNDCLASSEXW {
         cbSize: (mem::size_of::<winuser::WNDCLASSEXW>()) as u32,
         cbClsExtra: 0,
@@ -287,7 +288,15 @@ fn setup_message_window() -> windef::HWND {
     if unsafe { winuser::RegisterClassExW(&wcex) } == 0 {
         panic!("Registering WindowClass Failed!");
     }
+}
 
+fn make_window() -> windef::HWND {
+    let hwnd: windef::HWND;
+    let hinstance = unsafe { libloaderapi::GetModuleHandleW(ptr::null()) };
+    if hinstance == ptr::null_mut() {
+        panic!("Instance Generation Failed");
+    }
+    let classname: Vec<u16> = OsStr::new(WINDOW_CLASSNAME).encode_wide().collect();
     hwnd = unsafe {
         winuser::CreateWindowExW(
             0,

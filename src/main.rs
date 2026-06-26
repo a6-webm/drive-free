@@ -7,6 +7,7 @@ use drive_free::{
 use winapi::um::winuser::{self, VK_SPACE};
 
 fn main() {
+    RawInputManager::init();
     dbg!(user_select_mouse());
     dbg!(user_select_keyboard());
 }
