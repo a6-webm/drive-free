@@ -2,11 +2,11 @@
 - [x] keyboard and event have weird dependencies to each other, fix pls
 - [x] more general refactoring
 - [x] drop on RawInputManager not fully implemented
-- [ ] device selection
-- [ ] vjoy
+- [x] device selection
 - [ ] steering wheel
 - [ ] gearstick
   - [ ] relative or absolute?
   - [ ] distance config
 - [ ] pedals
   - [ ] key config
+- [ ] vjoy

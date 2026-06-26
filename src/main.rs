@@ -1,16 +1,10 @@
-use std::time;
+use std::io::{Write, stdout};
 
 use drive_free::{
     DeviceType, RawInputManager,
     event::{DevId, MouseButton, PressState, RawEvent},
 };
 use winapi::um::winuser::{self, VK_SPACE};
-
-fn main() {
-    RawInputManager::init();
-    dbg!(user_select_mouse());
-    dbg!(user_select_keyboard());
-}
 
 fn user_select_mouse() -> DevId {
     let mut manager = RawInputManager::new().unwrap();
@@ -34,6 +28,40 @@ fn user_select_keyboard() -> DevId {
             return id;
         }
     }
+}
+
+fn ask_user_to_select_devices() -> Result<(DevId, DevId, DevId), ()> {
+    print!("Press LEFT CLICK on the mouse you would like to be the STEERING WHEEL:");
+    stdout().flush().unwrap();
+    let wheel_dev_id = user_select_mouse();
+    println!("\nDevice ID: {}\n", wheel_dev_id);
+
+    print!("Press LEFT CLICK on the mouse you would like to be the GEARSTICK:");
+    stdout().flush().unwrap();
+    let gearstick_dev_id = user_select_mouse();
+    if gearstick_dev_id == wheel_dev_id {
+        println!(
+            "\n\n---------- ERROR: Steering wheel and gearstick are the same mouse ----------"
+        );
+        println!("Make sure to have at least two mouses plugged in, and run the program again\n");
+        return Err(());
+    }
+    println!("\nDevice ID: {}\n", gearstick_dev_id);
+
+    println!("Press SPACEBAR on the keyboard you would like to be the PEDALS:");
+    stdout().flush().unwrap();
+    let pedals_dev_id = user_select_keyboard();
+    println!("Device ID: {}", pedals_dev_id);
+
+    println!();
+    Ok((wheel_dev_id, gearstick_dev_id, pedals_dev_id))
+}
+
+fn main() {
+    RawInputManager::init();
+    let Ok((wheel_dev_id, gearstick_dev_id, pedals_dev_id)) = ask_user_to_select_devices() else {
+        return;
+    };
 }
 
 // fn main() {
