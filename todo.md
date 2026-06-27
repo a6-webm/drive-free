@@ -9,4 +9,4 @@
   - [ ] distance config
 - [ ] pedals
   - [ ] key config
-- [ ] vjoy
+- [ ] udp packets sent to controller
