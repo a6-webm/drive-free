@@ -4,9 +4,14 @@
 - [x] drop on RawInputManager not fully implemented
 - [x] device selection
 - [ ] steering wheel
+  - [x] axis
+  - [ ] maybe a way to recalibrate it?
+  - [ ] ideally, a visual in game of where the mouse is
 - [ ] gearstick
+  - [ ] add buttons to lua controller for this
   - [ ] relative or absolute?
   - [ ] distance config
 - [ ] pedals
   - [ ] key config
 - [ ] udp packets sent to controller
+- [ ] may have to redo everything in tokio, cause otherwise we're driving the main loop as fast as possible
