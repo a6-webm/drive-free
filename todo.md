@@ -9,9 +9,12 @@
   - [ ] ideally, a visual in game of where the mouse is
 - [ ] gearstick
   - [ ] add buttons to lua controller for this
-  - [ ] relative or absolute?
-  - [ ] distance config
+  - [x] relative or absolute?
+    - some combo of both
+    - [x] redo gear position, so if you go up after moving more than half the distance right, you'll still end up in the one on the right
+  - [x] distance config
 - [ ] pedals
   - [ ] key config
+- [ ] debug mode to make calibration easier
 - [ ] udp packets sent to controller
 - [ ] may have to redo everything in tokio, cause otherwise we're driving the main loop as fast as possible
