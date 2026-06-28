@@ -4,9 +4,7 @@
 - [x] drop on RawInputManager not fully implemented
 - [x] device selection
 - [ ] steering wheel
-  - [x] axis
-  - [ ] maybe a way to recalibrate it?
-  - [ ] ideally, a visual in game of where the mouse is
+  - [ ] redo mouse steering wheel as just a left and right line
 - [ ] gearstick
   - [ ] add buttons to lua controller for this
   - [x] relative or absolute?
@@ -14,7 +12,7 @@
     - [x] redo gear position, so if you go up after moving more than half the distance right, you'll still end up in the one on the right
   - [x] distance config
 - [ ] pedals
-  - [ ] key config
+  - [ ] webcam taped under desk looking down at your feet
 - [ ] debug mode to make calibration easier
 - [ ] udp packets sent to controller
 - [ ] may have to redo everything in tokio, cause otherwise we're driving the main loop as fast as possible
