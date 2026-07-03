@@ -66,7 +66,7 @@ fn main() {
     else {
         return;
     };
-    let mut wheel_state = wheel::WheelState::new(100, 1.5);
+    let mut wheel_state = wheel::WheelState::new(10.0);
     let mut gearstick_state = gearstick::GearstickState::new_6_speed(500);
     // let mut pedals_state = todo!();
 

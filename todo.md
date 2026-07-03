@@ -3,8 +3,8 @@
 - [x] more general refactoring
 - [x] drop on RawInputManager not fully implemented
 - [x] device selection
-- [ ] steering wheel
-  - [ ] redo mouse steering wheel as just a left and right line
+- [x] steering wheel
+  - [x] redo mouse steering wheel as just a left and right line
 - [ ] gearstick
   - [ ] add buttons to lua controller for this
   - [x] relative or absolute?
