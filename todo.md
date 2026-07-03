@@ -12,7 +12,8 @@
     - [x] redo gear position, so if you go up after moving more than half the distance right, you'll still end up in the one on the right
   - [x] distance config
 - [ ] pedals
-  - [ ] webcam taped under desk looking down at your feet
+  - [ ] keyboard idk
+  - [ ] turn throttle off if break is on
 - [ ] debug mode to make calibration easier
 - [ ] udp packets sent to controller
 - [ ] may have to redo everything in tokio, cause otherwise we're driving the main loop as fast as possible
