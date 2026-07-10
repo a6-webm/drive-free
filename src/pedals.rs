@@ -41,11 +41,16 @@ struct Pedal {
     axis: i16,
     keys: Vec<Vk>,
     pressed: Vec<bool>,
-    pos: i16,
+    pos: isize,
 }
 
 impl Pedal {
     fn update(&mut self, key: Vk, press: PressState) {
+        self.update_pos(key, press);
+        self.axis = self.calc_axis();
+    }
+
+    fn update_pos(&mut self, key: Vk, press: PressState) {
         let Some(press_i) = self.keys.iter().cloned().position(|k| k == key) else {
             return;
         };
@@ -54,60 +59,82 @@ impl Pedal {
             return;
         }
         self.pressed[press_i] = new_press;
-        if (press_i as i16) < self.pos {
+        if (press_i as isize) < self.pos {
             return;
         }
-        if (press_i as i16) > self.pos {
-            self.pos = press_i as i16;
-            self.update_axis();
+        if (press_i as isize) > self.pos {
+            self.pos = press_i as isize;
             return;
         }
         if press_i == 0 && !new_press {
             self.pos = -1;
-            self.update_axis();
             return;
         }
         for i in (0..=press_i).rev() {
             if self.pressed[i] {
-                self.pos = i as i16;
-                self.update_axis();
+                self.pos = i as isize;
                 return;
             }
         }
+        self.pos = -1;
     }
 
-    fn update_axis(&mut self) {
-        self.axis = i16::MIN + (self.pos + 1) * (i16::MAX as usize * 2 / self.keys.len()) as i16;
+    fn calc_axis(&self) -> i16 {
+        if self.pos == self.keys.len() as isize - 1 {
+            return i16::MAX;
+        }
+        let origin = i16::MIN as f32;
+        let index = (self.pos + 1) as f32;
+        let step_size = i16::MAX as f32 * 2.0 / self.keys.len() as f32;
+        (origin + index * step_size) as i16
     }
 }
 
-struct PedalsState {
+pub struct PedalsState {
     throttle: Pedal,
     brake: Pedal,
     clutch: Pedal,
 }
 
 impl PedalsState {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             throttle: Pedal {
-                axis: 0,
+                axis: i16::MIN,
                 keys: THROTTLE_US_KEYS.to_owned(),
                 pressed: vec![false; THROTTLE_US_KEYS.len()],
                 pos: -1,
             },
             brake: Pedal {
-                axis: 0,
+                axis: i16::MIN,
                 keys: BRAKE_US_KEYS.to_owned(),
                 pressed: vec![false; BRAKE_US_KEYS.len()],
                 pos: -1,
             },
             clutch: Pedal {
-                axis: 0,
+                axis: i16::MIN,
                 keys: CLUTCH_US_KEYS.to_owned(),
                 pressed: vec![false; CLUTCH_US_KEYS.len()],
                 pos: -1,
             },
         }
+    }
+
+    pub fn update(&mut self, key: Vk, press: PressState) {
+        self.throttle.update(key, press);
+        self.brake.update(key, press);
+        self.clutch.update(key, press);
+
+        // if braking, ignore throttle
+        if self.brake.axis > i16::MIN {
+            self.throttle.axis = i16::MIN;
+        }
+    }
+
+    pub fn dbg(&self) {
+        println!(
+            "c:{} b:{} a:{}",
+            self.clutch.axis, self.brake.axis, self.throttle.axis
+        )
     }
 }

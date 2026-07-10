@@ -44,7 +44,7 @@ pub const VK_X: Vk = 0x58;
 pub const VK_Y: Vk = 0x59;
 pub const VK_Z: Vk = 0x5A;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Copy)]
 pub enum PressState {
     Press,
     Release,

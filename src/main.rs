@@ -68,14 +68,14 @@ fn main() {
     };
     let mut wheel_state = wheel::WheelState::new(10.0);
     let mut gearstick_state = gearstick::GearstickState::new_6_speed(500);
-    // let mut pedals_state = todo!();
+    let mut pedals_state = pedals::PedalsState::new();
 
     let mut dbg_gear = 0i32;
     loop {
         match manager.get_event() {
             Some(RawEvent::MouseMoveEvent(id, dx, dy)) if id == wheel_dev_id => {
                 wheel_state.update((dx, dy));
-                // println!("{:?}", wheel_state.axis); // debug
+                // println!("{:?}", wheel_state.axis); // dbg
             }
             Some(RawEvent::MouseButtonEvent(id, MouseButton::Left, PressState::Press))
                 if id == wheel_dev_id =>
@@ -84,17 +84,21 @@ fn main() {
             }
             Some(RawEvent::MouseMoveEvent(id, dx, dy)) if id == gearstick_dev_id => {
                 gearstick_state.update((dx, dy));
-                // println!("{:?}", gearstick_state.mouse_pos); // debug
+                // println!("{:?}", gearstick_state.mouse_pos); // dbg
             }
             Some(RawEvent::MouseButtonEvent(id, MouseButton::Right, press))
                 if id == gearstick_dev_id =>
             {
                 gearstick_state.special = press == PressState::Press;
             }
+            Some(RawEvent::KeyboardEvent(id, key, press, _key_pos)) if id == pedals_dev_id => {
+                pedals_state.update(key, press);
+                pedals_state.dbg();
+            }
             Some(_) | None => (),
         }
         {
-            // debug
+            // dbg
             let current = gearstick_state.get_gear();
             if dbg_gear != current {
                 dbg_gear = current;
