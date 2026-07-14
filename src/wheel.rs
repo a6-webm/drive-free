@@ -1,5 +1,3 @@
-use std::f32::consts::PI;
-
 #[derive(Default)]
 pub struct WheelState {
     sense: f32,
