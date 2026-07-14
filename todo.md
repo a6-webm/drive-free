@@ -11,10 +11,11 @@
     - some combo of both
     - [x] redo gear position, so if you go up after moving more than half the distance right, you'll still end up in the one on the right
   - [x] distance config
-- [ ] pedals
+- [x] pedals
   - [x] keyboard idk
   - [x] turn throttle off if break is on
-  - [ ] fix shift and oem keys not being detected
+  - [x] fix shift and oem keys not being detected
+- [ ] config for everything
 - [ ] debug mode to make calibration easier
 - [ ] udp packets sent to controller
 - [ ] may have to redo everything in tokio, cause otherwise we're driving the main loop as fast as possible

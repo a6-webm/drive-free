@@ -125,8 +125,8 @@ fn main() {
             {
                 gearstick_state.special = press == PressState::Press;
             }
-            Some(RawEvent::KeyboardEvent(id, key, press, _key_pos)) if id == pedals_dev_id => {
-                pedals_state.update(key, press);
+            Some(RawEvent::KeyboardEvent(id, key, press, key_pos)) if id == pedals_dev_id => {
+                pedals_state.update(key, key_pos, press);
                 pedals_state.dbg();
             }
             Some(_) | None => (),

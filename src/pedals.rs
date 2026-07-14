@@ -1,56 +1,85 @@
 use drive_free::event::*;
 use winapi::um::winuser::*;
 
-const THROTTLE_US_KEYS: &[Vk] = &[
-    VK_LSHIFT,
-    VK_Z,
-    VK_X,
-    VK_C,
-    VK_V,
-    VK_B,
-    VK_N,
-    VK_M,
-    VK_OEM_COMMA,
-    VK_OEM_PERIOD,
-    VK_OEM_2,
-    VK_RSHIFT,
+const THROTTLE_US_KEYS: &[Key] = &[
+    Key::K(VK_SHIFT),
+    Key::K(VK_Z),
+    Key::K(VK_X),
+    Key::K(VK_C),
+    Key::K(VK_V),
+    Key::K(VK_B),
+    Key::K(VK_N),
+    Key::K(VK_M),
+    Key::K(VK_OEM_COMMA),
+    Key::K(VK_OEM_PERIOD),
+    Key::K(VK_OEM_2),
 ];
 
-const BRAKE_US_KEYS: &[Vk] = &[
-    VK_CAPITAL, VK_A, VK_S, VK_D, VK_F, VK_G, VK_H, VK_J, VK_K, VK_L, VK_OEM_1, VK_OEM_7, VK_RETURN,
+const BRAKE_US_KEYS: &[Key] = &[
+    Key::K(VK_CONTROL),
+    Key::K(VK_A),
+    Key::K(VK_S),
+    Key::K(VK_D),
+    Key::K(VK_F),
+    Key::K(VK_G),
+    Key::K(VK_H),
+    Key::K(VK_J),
+    Key::K(VK_K),
+    Key::K(VK_L),
+    Key::K(VK_OEM_1),
+    Key::K(VK_OEM_7),
+    Key::K(VK_RETURN),
 ];
 
-const CLUTCH_US_KEYS: &[Vk] = &[
-    VK_OEM_3,
-    VK_1,
-    VK_2,
-    VK_3,
-    VK_4,
-    VK_5,
-    VK_6,
-    VK_7,
-    VK_8,
-    VK_9,
-    VK_0,
-    VK_OEM_MINUS,
-    VK_OEM_PLUS,
-    VK_BACK,
+const CLUTCH_US_KEYS: &[Key] = &[
+    Key::K(VK_OEM_3),
+    Key::K(VK_1),
+    Key::K(VK_2),
+    Key::K(VK_3),
+    Key::K(VK_4),
+    Key::K(VK_5),
+    Key::K(VK_6),
+    Key::K(VK_7),
+    Key::K(VK_8),
+    Key::K(VK_9),
+    Key::K(VK_0),
+    Key::K(VK_OEM_MINUS),
+    Key::K(VK_OEM_PLUS),
+    Key::K(VK_BACK),
 ];
+
+#[derive(Clone, Debug)]
+pub enum Key {
+    K(Vk),
+    KAndPos(Vk, KeyPos),
+}
+
+impl PartialEq for Key {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::K(l0), Self::K(r0)) => l0 == r0,
+            (Self::KAndPos(l0, l1), Self::KAndPos(r0, r1)) => l0 == r0 && l1 == r1,
+            (Self::KAndPos(l0, _l1), Self::K(r0)) => l0 == r0,
+            (Self::K(l0), Self::KAndPos(r0, _r1)) => l0 == r0,
+        }
+    }
+}
 
 struct Pedal {
     axis: i16,
-    keys: Vec<Vk>,
+    keys: Vec<Key>,
     pressed: Vec<bool>,
     pos: isize,
 }
 
 impl Pedal {
-    fn update(&mut self, key: Vk, press: PressState) {
-        self.update_pos(key, press);
+    fn update(&mut self, key: Vk, key_pos: KeyPos, press: PressState) {
+        self.update_pos(key, key_pos, press);
         self.axis = self.calc_axis();
     }
 
-    fn update_pos(&mut self, key: Vk, press: PressState) {
+    fn update_pos(&mut self, key: Vk, key_pos: KeyPos, press: PressState) {
+        let key = Key::KAndPos(key, key_pos);
         let Some(press_i) = self.keys.iter().cloned().position(|k| k == key) else {
             return;
         };
@@ -120,10 +149,10 @@ impl PedalsState {
         }
     }
 
-    pub fn update(&mut self, key: Vk, press: PressState) {
-        self.throttle.update(key, press);
-        self.brake.update(key, press);
-        self.clutch.update(key, press);
+    pub fn update(&mut self, key: Vk, key_pos: KeyPos, press: PressState) {
+        self.throttle.update(key, key_pos, press);
+        self.brake.update(key, key_pos, press);
+        self.clutch.update(key, key_pos, press);
 
         // if braking, ignore throttle
         if self.brake.axis > i16::MIN {

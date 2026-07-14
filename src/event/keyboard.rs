@@ -2,7 +2,7 @@ use winapi::um::winuser;
 
 use crate::{DevId, RawEvent, event::PressState};
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum KeyPos {
     Left,
     Right,
