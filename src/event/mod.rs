@@ -44,13 +44,13 @@ pub const VK_X: Vk = 0x58;
 pub const VK_Y: Vk = 0x59;
 pub const VK_Z: Vk = 0x5A;
 
-#[derive(Clone, PartialEq, Eq, Copy)]
+#[derive(Clone, PartialEq, Eq, Copy, Debug)]
 pub enum PressState {
     Press,
     Release,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum RawEvent {
     MouseButtonEvent(DevId, MouseButton, PressState),
     MouseMoveEvent(DevId, i32, i32),

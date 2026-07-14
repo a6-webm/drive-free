@@ -2,13 +2,16 @@ mod gearstick;
 mod pedals;
 mod wheel;
 
-use std::io::{Write, stdout};
+use std::{
+    env,
+    io::{Write, stdout},
+};
 
 use drive_free::{
     DeviceType, RawInputManager,
-    event::{DevId, MouseButton, PressState, RawEvent},
+    event::{DevId, MouseButton, PressState, RawEvent, VK_Q},
 };
-use winapi::um::winuser::{self, VK_SPACE};
+use winapi::um::winuser::{self, VK_ESCAPE, VK_SPACE};
 
 fn user_select_mouse(manager: &mut RawInputManager) -> DevId {
     loop {
@@ -57,10 +60,41 @@ fn ask_user_to_select_devices(manager: &mut RawInputManager) -> Result<(DevId, D
     Ok((wheel_dev_id, gearstick_dev_id, pedals_dev_id))
 }
 
+fn dbg_mode(manager: &mut RawInputManager) {
+    let mut exit_counter = 0;
+    loop {
+        match manager.get_event() {
+            Some(ev @ RawEvent::MouseButtonEvent(_, _, _)) => {
+                dbg!(ev);
+            }
+            Some(ev @ RawEvent::KeyboardEvent(_, key, press, _))
+                if (key == VK_ESCAPE || key == VK_Q) && press == PressState::Press =>
+            {
+                exit_counter += 1;
+                dbg!(ev);
+            }
+            Some(ev @ RawEvent::KeyboardEvent(_, _, _, _)) => {
+                dbg!(ev);
+            }
+            Some(_) | None => (),
+        }
+        if exit_counter > 5 {
+            return;
+        }
+    }
+}
+
 fn main() {
     RawInputManager::init();
     let mut manager = RawInputManager::new().unwrap();
     manager.register_devices(DeviceType::All);
+
+    let args: Vec<String> = env::args().collect();
+    if args.get(1).map_or(false, |a| a == "dbg") {
+        dbg_mode(&mut manager);
+        return;
+    }
+
     let Ok((wheel_dev_id, gearstick_dev_id, pedals_dev_id)) =
         ask_user_to_select_devices(&mut manager)
     else {
