@@ -4,6 +4,8 @@ local udp = nil
 local deviceInst = nil
 
 local prevState = {} -- so we only emit changes
+local axes = 4
+local buttons = 7
 
 local function onExtensionUnloaded()
     if deviceInst ~= nil and extensions.core_input_virtualInput then
@@ -20,8 +22,6 @@ local function onUpdate(dt)
     end
 
     if deviceInst == nil and extensions.core_input_virtualInput then
-        local axes = 4
-        local buttons = 0
         deviceInst = extensions.core_input_virtualInput.createDevice("BeamNG 1 Kb 2 Mice Controller", "bng_1k2m", axes, buttons, 0)
     end
 
@@ -33,11 +33,20 @@ local function onUpdate(dt)
     end
 
     if latest_data and deviceInst then
-        for axis, raw_val in enumerate(latest_data:gmatch("[^|]+")) do
-            local val = tonumber(raw_val) or 0
-            if prevState[axis] ~= val then
-                extensions.core_input_virtualInput.emit(deviceInst, "axis", axis, "change", val)
-                prevState[axis] = val
+        for idx, raw_val in enumerate(latest_data:gmatch("[^|]+")) do
+            if idx < axes then
+                local val = tonumber(raw_val) or 0
+                if prevState[idx] ~= val then
+                    extensions.core_input_virtualInput.emit(deviceInst, "axis", idx, "change", val)
+                    prevState[idx] = val
+                end
+            else -- gear buttons
+                local gear = tonumber(raw_val) or 0
+                if gear ~= prevState[idx] then
+                    extensions.core_input_virtualInput.emit(deviceInst, "button", gear, "down", 1);
+                    if prevState[idx] ~= nil then extensions.core_input_virtualInput.emit(deviceInst, "button", prevState[idx], "up", 0); end
+                    prevState[idx] = gear
+                end
             end
         end
     end

@@ -5,8 +5,8 @@
 - [x] device selection
 - [x] steering wheel
   - [x] redo mouse steering wheel as just a left and right line
-- [ ] gearstick
-  - [ ] add buttons to lua controller for this
+- [x] gearstick
+  - [x] add buttons to lua controller for this
   - [x] relative or absolute?
     - some combo of both
     - [x] redo gear position, so if you go up after moving more than half the distance right, you'll still end up in the one on the right
@@ -15,7 +15,7 @@
   - [x] keyboard idk
   - [x] turn throttle off if break is on
   - [x] fix shift and oem keys not being detected
-- [ ] config for everything
-- [ ] debug mode to make calibration easier
-- [ ] udp packets sent to controller
 - [ ] may have to redo everything in tokio, cause otherwise we're driving the main loop as fast as possible
+- [ ] udp packets sent to controller
+- [ ] debug mode to make calibration easier
+- [ ] config for everything
