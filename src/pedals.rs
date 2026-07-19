@@ -149,6 +149,18 @@ impl PedalsState {
         }
     }
 
+    pub fn get_clutch_axis(&self) -> i16 {
+        self.clutch.axis
+    }
+
+    pub fn get_brake_axis(&self) -> i16 {
+        self.brake.axis
+    }
+
+    pub fn get_throttle_axis(&self) -> i16 {
+        self.throttle.axis
+    }
+
     pub fn update(&mut self, key: Vk, key_pos: KeyPos, press: PressState) {
         self.throttle.update(key, key_pos, press);
         self.brake.update(key, key_pos, press);

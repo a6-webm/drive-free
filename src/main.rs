@@ -5,6 +5,7 @@ mod wheel;
 use std::{
     env,
     io::{Write, stdout},
+    net,
 };
 
 use drive_free::{
@@ -102,7 +103,7 @@ fn main() {
     let mut gearstick_state = gearstick::GearstickState::new_6_speed(500);
     let mut pedals_state = pedals::PedalsState::new();
 
-    let mut dbg_gear = 0i32;
+    let socket = net::UdpSocket::bind("127.0.0.1:55555").unwrap();
     loop {
         match manager.get_event() {
             RawEvent::MouseMoveEvent(id, dx, dy) if id == wheel_dev_id => {
@@ -123,17 +124,24 @@ fn main() {
             }
             RawEvent::KeyboardEvent(id, key, press, key_pos) if id == pedals_dev_id => {
                 pedals_state.update(key, key_pos, press);
-                pedals_state.dbg();
+                // pedals_state.dbg();
             }
             _ => (),
         }
-        {
-            // dbg
-            let current = gearstick_state.get_gear();
-            if dbg_gear != current {
-                dbg_gear = current;
-                dbg!(dbg_gear);
-            }
-        }
+        let buf = format!(
+            "{}|{}|{}|{}|{}",
+            wheel_state.axis,
+            pedals_state.get_clutch_axis(),
+            pedals_state.get_brake_axis(),
+            pedals_state.get_throttle_axis(),
+            gearstick_state.get_gear()
+        );
+        socket.send(buf.as_bytes()).unwrap_or_default(); // TODO do we need to reverse this?
+        // dbg
+        // let current = gearstick_state.get_gear();
+        // if dbg_gear != current {
+        //     dbg_gear = current;
+        //     dbg!(dbg_gear);
+        // }
     }
 }
