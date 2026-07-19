@@ -7,52 +7,17 @@ use std::ffi::{OsStr, OsString};
 use std::mem;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::ptr;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync;
 use std::thread;
 use std::thread::JoinHandle;
+use std::time::Duration;
 use winapi::shared::{minwindef, windef};
 use winapi::um::{libloaderapi, winnt, winuser};
 
 use crate::event::{DevId, RawEvent};
 
+const POLLING_RATE: u32 = 128;
 const WINDOW_CLASSNAME: &str = "RawInput Hidden Window\0";
-
-#[repr(C)]
-struct RAWINPUTHID {
-    pub header: winuser::RAWINPUTHEADER,
-    pub data: winuser::RAWHID,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy)]
-struct RAWINPUTMOUSE {
-    pub header: winuser::RAWINPUTHEADER,
-    pub data: winuser::RAWMOUSE,
-}
-
-#[repr(C)]
-#[derive(Clone, Copy)]
-struct RAWINPUTKEYBOARD {
-    pub header: winuser::RAWINPUTHEADER,
-    pub data: winuser::RAWKEYBOARD,
-}
-
-enum RAWINPUTTYPE {
-    MOUSE(*mut RAWINPUTMOUSE),
-    KEYBOARD(*mut RAWINPUTKEYBOARD),
-    HID(*mut RAWINPUTHID),
-}
-
-unsafe fn derive_rawinput_type(input: *mut winuser::RAWINPUT) -> RAWINPUTTYPE {
-    unsafe {
-        match (*input).header.dwType {
-            winuser::RIM_TYPEMOUSE => RAWINPUTTYPE::MOUSE(input as *mut RAWINPUTMOUSE),
-            winuser::RIM_TYPEKEYBOARD => RAWINPUTTYPE::KEYBOARD(input as *mut RAWINPUTKEYBOARD),
-            winuser::RIM_TYPEHID => RAWINPUTTYPE::HID(input as *mut RAWINPUTHID),
-            _ => panic!("dwType should be 0, 1 or 2"),
-        }
-    }
-}
 
 /// Mouse Raw Input Name
 #[derive(Clone)]
@@ -94,7 +59,6 @@ impl Devices {
 
 enum Command {
     Register(DeviceType),
-    GetEvent,
     Finish,
 }
 
@@ -110,8 +74,8 @@ pub enum DeviceType {
 /// Manages Raw Input Processing
 pub struct RawInputManager {
     device_thread: Option<JoinHandle<()>>,
-    sender: Sender<Command>,
-    receiver: Receiver<Option<RawEvent>>,
+    sender: sync::mpsc::Sender<Command>,
+    receiver: sync::mpsc::Receiver<RawEvent>,
 }
 
 impl RawInputManager {
@@ -120,8 +84,8 @@ impl RawInputManager {
     }
 
     pub fn new() -> Result<RawInputManager, &'static str> {
-        let (tx, rx) = channel();
-        let (tx2, rx2) = channel();
+        let (mgr_tx, th_rx) = sync::mpsc::channel();
+        let (th_tx, mgr_rx) = sync::mpsc::channel();
 
         let joiner = thread::spawn(move || {
             let hwnd = make_window();
@@ -130,37 +94,36 @@ impl RawInputManager {
 
             let mut exit = false;
             while !exit {
-                match rx.recv().unwrap() {
-                    Command::Register(thing) => {
+                thread::sleep(Duration::from_secs_f32(1.0 / POLLING_RATE as f32));
+                if let Some(ev) = pull_events_to_buffer_and_pop_event(&mut event_queue, &devices) {
+                    th_tx.send(ev).unwrap();
+                }
+                match th_rx.try_recv() {
+                    Ok(Command::Register(thing)) => {
                         devices = register_devices(hwnd, thing).unwrap();
-                        tx2.send(None).unwrap();
                     }
-                    Command::GetEvent => {
-                        tx2.send(get_event(&mut event_queue, &devices)).unwrap();
-                    }
-                    Command::Finish => {
+                    Ok(Command::Finish) => {
                         unsafe { winuser::DestroyWindow(hwnd) };
                         exit = true;
                     }
+                    _ => (),
                 };
             }
         });
         Ok(RawInputManager {
             device_thread: Some(joiner),
-            sender: tx,
-            receiver: rx2,
+            sender: mgr_tx,
+            receiver: mgr_rx,
         })
     }
 
     /// Allows Raw Input devices of type device_type to be received from the Input Manager
     pub fn register_devices(&mut self, device_type: DeviceType) {
         self.sender.send(Command::Register(device_type)).unwrap();
-        self.receiver.recv().unwrap();
     }
 
-    /// Get Event from the Input Manager
-    pub fn get_event(&mut self) -> Option<RawEvent> {
-        self.sender.send(Command::GetEvent).unwrap();
+    /// Get Event from the Input Manager (blocking)
+    pub fn get_event(&mut self) -> RawEvent {
         self.receiver.recv().unwrap()
     }
 }
@@ -213,52 +176,53 @@ fn register_devices(hwnd: windef::HWND, reg_type: DeviceType) -> Result<Devices,
 }
 
 fn read_input_buffer(event_queue: &mut VecDeque<RawEvent>, devices: &Devices) {
-    let mut rawinput_alloc = mem::MaybeUninit::<winuser::RAWINPUT>::uninit();
-    let mut buffer_size: u32 = 0;
-
-    let mut num_elements: i32 = unsafe {
+    const BUF_LEN: usize = 1024;
+    let mut buffer: [winuser::RAWINPUT; BUF_LEN] = unsafe { std::mem::zeroed() };
+    let mut buf_size = (BUF_LEN * mem::size_of::<winuser::RAWINPUT>()) as u32;
+    let num_elements: u32 = unsafe {
         winuser::GetRawInputBuffer(
-            ptr::null_mut(),
-            &mut buffer_size,
+            buffer.as_mut_ptr(),
+            &mut buf_size,
             mem::size_of::<winuser::RAWINPUTHEADER>() as u32,
-        ) as i32
+        )
     };
-    if num_elements as i32 == -1 {
-        panic!("GetRawInputBuffer Gave Error on First Call!");
+    if num_elements == u32::MAX {
+        panic!("GetRawInputBuffer gave error!"); // TODO instead, make buffer larger
     }
-    buffer_size = 1024;
-    num_elements = unsafe {
-        winuser::GetRawInputBuffer(
-            rawinput_alloc.as_mut_ptr(),
-            &mut buffer_size,
-            mem::size_of::<winuser::RAWINPUTHEADER>() as u32,
-        ) as i32
-    };
-    if num_elements as i32 == -1 {
-        panic!("GetRawInputBuffer Gave Error on Second Call!");
+    if num_elements == 0 {
+        return;
     }
 
-    let rawinput = unsafe { rawinput_alloc.assume_init() };
-    for _ in 0..num_elements as u32 {
-        let raw_input_ptr = unsafe { derive_rawinput_type(rawinput_alloc.as_mut_ptr()) };
-        let Some(id) = devices.device_map.get(&rawinput.header.hDevice).map(|f| *f) else {
+    for i in 0..num_elements as usize {
+        let rawinput_ev = buffer[i];
+        let Some(id) = devices
+            .device_map
+            .get(&rawinput_ev.header.hDevice)
+            .map(|f| *f)
+        else {
             continue;
         };
-        match raw_input_ptr {
-            RAWINPUTTYPE::MOUSE(pointer) => {
-                let ev = unsafe { *pointer };
-                event_queue.extend(event::mouse::process_mouse_data(&ev.data, id));
+        match rawinput_ev.header.dwType {
+            winuser::RIM_TYPEMOUSE => event_queue.extend(event::mouse::process_mouse_data(
+                unsafe { std::mem::transmute(&rawinput_ev.data) },
+                id,
+            )),
+            winuser::RIM_TYPEKEYBOARD => {
+                event_queue.extend(event::keyboard::process_keyboard_data(
+                    unsafe { std::mem::transmute(&rawinput_ev.data) },
+                    id,
+                ))
             }
-            RAWINPUTTYPE::KEYBOARD(pointer) => {
-                let ev = unsafe { *pointer };
-                event_queue.extend(event::keyboard::process_keyboard_data(&ev.data, id));
-            }
-            _ => (),
+            winuser::RIM_TYPEHID => (),
+            _ => panic!("dwType should be 0, 1 or 2"),
         }
     }
 }
 
-fn get_event(event_queue: &mut VecDeque<RawEvent>, devices: &Devices) -> Option<RawEvent> {
+fn pull_events_to_buffer_and_pop_event(
+    event_queue: &mut VecDeque<RawEvent>,
+    devices: &Devices,
+) -> Option<RawEvent> {
     if event_queue.is_empty() {
         read_input_buffer(event_queue, &devices);
     }

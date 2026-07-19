@@ -15,7 +15,7 @@
   - [x] keyboard idk
   - [x] turn throttle off if break is on
   - [x] fix shift and oem keys not being detected
-- [ ] may have to redo everything in tokio, cause otherwise we're driving the main loop as fast as possible
+- [x] fix busy waiting
 - [ ] udp packets sent to controller
 - [ ] debug mode to make calibration easier
 - [ ] config for everything

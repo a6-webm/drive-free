@@ -11,11 +11,11 @@ use drive_free::{
     DeviceType, RawInputManager,
     event::{DevId, MouseButton, PressState, RawEvent, VK_Q},
 };
-use winapi::um::winuser::{self, VK_ESCAPE, VK_SPACE};
+use winapi::um::winuser::{VK_ESCAPE, VK_SPACE};
 
 fn user_select_mouse(manager: &mut RawInputManager) -> DevId {
     loop {
-        if let Some(RawEvent::MouseButtonEvent(id, MouseButton::Left, PressState::Press)) =
+        if let RawEvent::MouseButtonEvent(id, MouseButton::Left, PressState::Press) =
             manager.get_event()
         {
             return id;
@@ -25,9 +25,7 @@ fn user_select_mouse(manager: &mut RawInputManager) -> DevId {
 
 fn user_select_keyboard(manager: &mut RawInputManager) -> DevId {
     loop {
-        if let Some(RawEvent::KeyboardEvent(id, VK_SPACE, PressState::Press, _)) =
-            manager.get_event()
-        {
+        if let RawEvent::KeyboardEvent(id, VK_SPACE, PressState::Press, _) = manager.get_event() {
             return id;
         }
     }
@@ -64,19 +62,19 @@ fn dbg_mode(manager: &mut RawInputManager) {
     let mut exit_counter = 0;
     loop {
         match manager.get_event() {
-            Some(ev @ RawEvent::MouseButtonEvent(_, _, _)) => {
+            ev @ RawEvent::MouseButtonEvent(_, _, _) => {
                 dbg!(ev);
             }
-            Some(ev @ RawEvent::KeyboardEvent(_, key, press, _))
+            ev @ RawEvent::KeyboardEvent(_, key, press, _)
                 if (key == VK_ESCAPE || key == VK_Q) && press == PressState::Press =>
             {
                 exit_counter += 1;
                 dbg!(ev);
             }
-            Some(ev @ RawEvent::KeyboardEvent(_, _, _, _)) => {
+            ev @ RawEvent::KeyboardEvent(_, _, _, _) => {
                 dbg!(ev);
             }
-            Some(_) | None => (),
+            _ => (),
         }
         if exit_counter > 5 {
             return;
@@ -107,29 +105,27 @@ fn main() {
     let mut dbg_gear = 0i32;
     loop {
         match manager.get_event() {
-            Some(RawEvent::MouseMoveEvent(id, dx, dy)) if id == wheel_dev_id => {
+            RawEvent::MouseMoveEvent(id, dx, dy) if id == wheel_dev_id => {
                 wheel_state.update((dx, dy));
                 // println!("{:?}", wheel_state.axis); // dbg
             }
-            Some(RawEvent::MouseButtonEvent(id, MouseButton::Left, PressState::Press))
+            RawEvent::MouseButtonEvent(id, MouseButton::Left, PressState::Press)
                 if id == wheel_dev_id =>
             {
                 return;
             }
-            Some(RawEvent::MouseMoveEvent(id, dx, dy)) if id == gearstick_dev_id => {
+            RawEvent::MouseMoveEvent(id, dx, dy) if id == gearstick_dev_id => {
                 gearstick_state.update((dx, dy));
                 // println!("{:?}", gearstick_state.mouse_pos); // dbg
             }
-            Some(RawEvent::MouseButtonEvent(id, MouseButton::Right, press))
-                if id == gearstick_dev_id =>
-            {
+            RawEvent::MouseButtonEvent(id, MouseButton::Right, press) if id == gearstick_dev_id => {
                 gearstick_state.special = press == PressState::Press;
             }
-            Some(RawEvent::KeyboardEvent(id, key, press, key_pos)) if id == pedals_dev_id => {
+            RawEvent::KeyboardEvent(id, key, press, key_pos) if id == pedals_dev_id => {
                 pedals_state.update(key, key_pos, press);
                 pedals_state.dbg();
             }
-            Some(_) | None => (),
+            _ => (),
         }
         {
             // dbg
