@@ -95,7 +95,7 @@ impl RawInputManager {
             let mut exit = false;
             while !exit {
                 thread::sleep(Duration::from_secs_f32(1.0 / POLLING_RATE as f32));
-                if let Some(ev) = pull_events_to_buffer_and_pop_event(&mut event_queue, &devices) {
+                while let Some(ev) = pull_events_to_buffer_and_pop_event(&mut event_queue, &devices) {
                     th_tx.send(ev).unwrap();
                 }
                 match th_rx.try_recv() {
