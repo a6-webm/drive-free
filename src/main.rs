@@ -125,6 +125,17 @@ fn main() {
             RawEvent::KeyboardEvent(id, key, press, key_pos) if id == pedals_dev_id => {
                 pedals_state.update(key, key_pos, press);
                 // pedals_state.dbg();
+                // TODO remove dbg ----------
+                let buf = format!(
+                    "{}|{}|{}|{}|{}",
+                    wheel_state.axis,
+                    pedals_state.get_clutch_axis(),
+                    pedals_state.get_brake_axis(),
+                    pedals_state.get_throttle_axis(),
+                    gearstick_state.get_gear()
+                );
+                dbg!(buf);
+                // --------------------------
             }
             _ => (),
         }

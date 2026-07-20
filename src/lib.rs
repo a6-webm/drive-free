@@ -71,6 +71,8 @@ pub enum DeviceType {
     All,
 }
 
+type RawInputBuffer = Box<[std::mem::MaybeUninit<winuser::RAWINPUT>]>;
+
 /// Manages Raw Input Processing
 pub struct RawInputManager {
     device_thread: Option<JoinHandle<()>>,
@@ -91,11 +93,19 @@ impl RawInputManager {
             let hwnd = make_window();
             let mut event_queue = VecDeque::new();
             let mut devices = Devices::new();
+            let initial_buf_len = 64;
+            let mut buffer = Box::new_uninit_slice(initial_buf_len);
+            let mut buf_len = (initial_buf_len * mem::size_of::<winuser::RAWINPUT>()) as u32;
 
             let mut exit = false;
             while !exit {
                 thread::sleep(Duration::from_secs_f32(1.0 / POLLING_RATE as f32));
-                while let Some(ev) = pull_events_to_buffer_and_pop_event(&mut event_queue, &devices) {
+                while let Some(ev) = pull_events_to_buffer_and_pop_event(
+                    &mut buffer,
+                    &mut buf_len,
+                    &mut event_queue,
+                    &devices,
+                ) {
                     th_tx.send(ev).unwrap();
                 }
                 match th_rx.try_recv() {
@@ -175,26 +185,33 @@ fn register_devices(hwnd: windef::HWND, reg_type: DeviceType) -> Result<Devices,
     Ok(produce_raw_device_list())
 }
 
-fn read_input_buffer(event_queue: &mut VecDeque<RawEvent>, devices: &Devices) {
-    const BUF_LEN: usize = 1024;
-    let mut buffer: [winuser::RAWINPUT; BUF_LEN] = unsafe { std::mem::zeroed() };
-    let mut buf_size = (BUF_LEN * mem::size_of::<winuser::RAWINPUT>()) as u32;
-    let num_elements: u32 = unsafe {
-        winuser::GetRawInputBuffer(
-            buffer.as_mut_ptr(),
-            &mut buf_size,
-            mem::size_of::<winuser::RAWINPUTHEADER>() as u32,
-        )
-    };
-    if num_elements == u32::MAX {
-        panic!("GetRawInputBuffer gave error!"); // TODO instead, make buffer larger
+fn read_input_buffer(
+    buffer: &mut RawInputBuffer,
+    buf_len: &mut u32,
+    event_queue: &mut VecDeque<RawEvent>,
+    devices: &Devices,
+) {
+    let mut num_elements: u32;
+    loop {
+        num_elements = unsafe {
+            winuser::GetRawInputBuffer(
+                buffer.assume_init_mut().as_mut_ptr(),
+                buf_len,
+                mem::size_of::<winuser::RAWINPUTHEADER>() as u32,
+            )
+        };
+        if num_elements != u32::MAX {
+            break; // no error
+        } // otherwise, buffer too small
+        *buf_len *= 2;
+        *buffer = Box::new_uninit_slice(*buf_len as usize);
     }
     if num_elements == 0 {
         return;
     }
 
     for i in 0..num_elements as usize {
-        let rawinput_ev = buffer[i];
+        let rawinput_ev = unsafe { buffer[i].assume_init_ref() };
         let Some(id) = devices
             .device_map
             .get(&rawinput_ev.header.hDevice)
@@ -220,11 +237,13 @@ fn read_input_buffer(event_queue: &mut VecDeque<RawEvent>, devices: &Devices) {
 }
 
 fn pull_events_to_buffer_and_pop_event(
+    buffer: &mut RawInputBuffer,
+    buf_len: &mut u32,
     event_queue: &mut VecDeque<RawEvent>,
     devices: &Devices,
 ) -> Option<RawEvent> {
     if event_queue.is_empty() {
-        read_input_buffer(event_queue, &devices);
+        read_input_buffer(buffer, buf_len, event_queue, &devices);
     }
     event_queue.pop_front()
 }

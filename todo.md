@@ -16,7 +16,7 @@
   - [x] turn throttle off if break is on
   - [x] fix shift and oem keys not being detected
 - [x] fix busy waiting
-- [ ] implement a growing buffer on get rawinput events
+- [x] implement a growing buffer on get rawinput events
 - [ ] udp packets sent to controller
 - [ ] debug mode to make calibration easier
 - [ ] config for everything
