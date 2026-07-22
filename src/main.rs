@@ -104,6 +104,7 @@ fn main() {
     let mut pedals_state = pedals::PedalsState::new();
 
     let socket = net::UdpSocket::bind("127.0.0.1:55555").unwrap();
+    socket.connect("127.0.0.1:55555").unwrap();
     loop {
         match manager.get_event() {
             RawEvent::MouseMoveEvent(id, dx, dy) if id == wheel_dev_id => {
