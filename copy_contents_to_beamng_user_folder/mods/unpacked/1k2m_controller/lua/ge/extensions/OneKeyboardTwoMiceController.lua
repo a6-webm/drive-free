@@ -16,13 +16,17 @@ end
 
 local function onUpdate(dt)
     if not udp then
+        log("I", "creating udp socket")
         udp = socket.udp()
         udp:settimeout(0)
         udp:setsockname("127.0.0.1", 5555)
+        log("I", "created udp socket")
     end
 
     if deviceInst == nil and extensions.core_input_virtualInput then
+        log("I", "creating virtual device")
         deviceInst = extensions.core_input_virtualInput.createDevice("BeamNG 1 Kb 2 Mice Controller", "bng_1k2m", axes, buttons, 0)
+        log("I", "created virtual device")
     end
 
     local latest_data = nil
