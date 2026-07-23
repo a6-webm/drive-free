@@ -37,7 +37,8 @@ local function onUpdate(dt)
     end
 
     if latest_data and deviceInst then
-        for idx, raw_val in enumerate(latest_data:gmatch("[^|]+")) do
+        local idx = 0
+        for raw_val in latest_data:gmatch("[^|]+") do
             if idx < axes then
                 local val = tonumber(raw_val) or 0
                 if prevState[idx] ~= val then
@@ -52,6 +53,7 @@ local function onUpdate(dt)
                     prevState[idx] = gear
                 end
             end
+            idx = idx + 1
         end
     end
 end
