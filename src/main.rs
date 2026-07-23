@@ -105,8 +105,8 @@ fn main() {
     let mut gearstick_state = gearstick::GearstickState::new_6_speed(500);
     let mut pedals_state = pedals::PedalsState::new();
 
-    let socket = net::UdpSocket::bind("127.0.0.1:55555").unwrap();
-    socket.connect("127.0.0.1:55555").unwrap();
+    let socket = net::UdpSocket::bind("127.0.0.1:5556").unwrap();
+    socket.connect("127.0.0.1:5555").unwrap();
     loop {
         match manager.get_event() {
             Some(RawEvent::MouseMoveEvent(id, dx, dy)) if id == wheel_dev_id => {
