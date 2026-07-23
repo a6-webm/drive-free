@@ -66,7 +66,7 @@ impl PartialEq for Key {
 }
 
 struct Pedal {
-    axis: i16,
+    axis: f32,
     keys: Vec<Key>,
     pressed: Vec<bool>,
     pos: isize,
@@ -108,14 +108,14 @@ impl Pedal {
         self.pos = -1;
     }
 
-    fn calc_axis(&self) -> i16 {
+    fn calc_axis(&self) -> f32 {
         if self.pos == self.keys.len() as isize - 1 {
-            return i16::MAX;
+            return 0.0;
         }
-        let origin = i16::MIN as f32;
+        let origin = 0.0;
         let index = (self.pos + 1) as f32;
-        let step_size = i16::MAX as f32 * 2.0 / self.keys.len() as f32;
-        (origin + index * step_size) as i16
+        let step_size = self.keys.len() as f32;
+        return origin + index / step_size;
     }
 }
 
@@ -129,19 +129,19 @@ impl PedalsState {
     pub fn new() -> Self {
         Self {
             throttle: Pedal {
-                axis: i16::MIN,
+                axis: 0.0,
                 keys: THROTTLE_US_KEYS.to_owned(),
                 pressed: vec![false; THROTTLE_US_KEYS.len()],
                 pos: -1,
             },
             brake: Pedal {
-                axis: i16::MIN,
+                axis: 0.0,
                 keys: BRAKE_US_KEYS.to_owned(),
                 pressed: vec![false; BRAKE_US_KEYS.len()],
                 pos: -1,
             },
             clutch: Pedal {
-                axis: i16::MIN,
+                axis: 0.0,
                 keys: CLUTCH_US_KEYS.to_owned(),
                 pressed: vec![false; CLUTCH_US_KEYS.len()],
                 pos: -1,
@@ -149,15 +149,15 @@ impl PedalsState {
         }
     }
 
-    pub fn get_clutch_axis(&self) -> i16 {
+    pub fn get_clutch_axis(&self) -> f32 {
         self.clutch.axis
     }
 
-    pub fn get_brake_axis(&self) -> i16 {
+    pub fn get_brake_axis(&self) -> f32 {
         self.brake.axis
     }
 
-    pub fn get_throttle_axis(&self) -> i16 {
+    pub fn get_throttle_axis(&self) -> f32 {
         self.throttle.axis
     }
 
@@ -165,10 +165,8 @@ impl PedalsState {
         self.throttle.update(key, key_pos, press);
         self.brake.update(key, key_pos, press);
         self.clutch.update(key, key_pos, press);
-
-        // if braking, ignore throttle
-        if self.brake.axis > i16::MIN {
-            self.throttle.axis = i16::MIN;
+        if self.brake.axis > 0.0 {
+            self.throttle.axis = 0.0; // if braking, ignore throttle
         }
     }
 
