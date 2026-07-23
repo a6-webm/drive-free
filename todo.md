@@ -17,6 +17,8 @@
   - [x] fix shift and oem keys not being detected
 - [x] fix busy waiting
 - [x] implement a growing buffer on get rawinput events
-- [ ] udp packets sent to controller
+- [x] udp packets sent to controller
+- [ ] add delay before setting pedal to 0 (in case ur foot comes off both keys while moving)
+- [ ] pedals sometimes getting stuck at zero for some reason (pretty sure it's not an issue on the rust side)
 - [ ] debug mode to make calibration easier
 - [ ] config for everything
