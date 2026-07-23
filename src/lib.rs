@@ -77,7 +77,7 @@ type RawInputBuffer = Box<[std::mem::MaybeUninit<winuser::RAWINPUT>]>;
 pub struct RawInputManager {
     device_thread: Option<JoinHandle<()>>,
     sender: sync::mpsc::Sender<Command>,
-    receiver: sync::mpsc::Receiver<RawEvent>,
+    receiver: sync::mpsc::Receiver<Option<RawEvent>>,
 }
 
 impl RawInputManager {
@@ -100,13 +100,23 @@ impl RawInputManager {
             let mut exit = false;
             while !exit {
                 thread::sleep(Duration::from_secs_f32(1.0 / POLLING_RATE as f32));
-                while let Some(ev) = pull_events_to_buffer_and_pop_event(
+                if let Some(ev) = pull_events_to_buffer_and_pop_event(
                     &mut buffer,
                     &mut buf_len,
                     &mut event_queue,
                     &devices,
                 ) {
-                    th_tx.send(ev).unwrap();
+                    th_tx.send(Some(ev)).unwrap();
+                    while let Some(ev) = pull_events_to_buffer_and_pop_event(
+                        &mut buffer,
+                        &mut buf_len,
+                        &mut event_queue,
+                        &devices,
+                    ) {
+                        th_tx.send(Some(ev)).unwrap();
+                    }
+                } else {
+                    th_tx.send(None).unwrap();
                 }
                 match th_rx.try_recv() {
                     Ok(Command::Register(thing)) => {
@@ -133,7 +143,7 @@ impl RawInputManager {
     }
 
     /// Get Event from the Input Manager (blocking)
-    pub fn get_event(&mut self) -> RawEvent {
+    pub fn get_event(&mut self) -> Option<RawEvent> {
         self.receiver.recv().unwrap()
     }
 }
